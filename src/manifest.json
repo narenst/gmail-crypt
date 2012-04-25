@@ -1,12 +1,13 @@
 {
-"name":"Mymail-Crypt for Gmail™",
-"version":"10",
-"description":"Extension implementing GPG into Webmail (Gmail™) using the OpenPGP.js library. This project is no way affiliated with Google™.",
+"name":"SocialCrypt for Gmail™",
+"version":"1",
+"description":"Extension implementing Social Keuy GPG into Webmail (Gmail™) using the OpenPGP.js library.",
 "icons": {
 "128":"gmail-crypt128.png",
 "96":"gmail-crypt96.png"
 },
 "permissions":[
+"tabs",
 "https://mail.google.com/*",
 "http://mail.google.com/*",
 "https://google.com/*",
@@ -20,6 +21,6 @@
     "run_at":"document_idle",
     "all_frames":true
 }],
-"homepage_url":"http://prometheusx.net",
+"homepage_url":"http://socialkeys.org",
 "options_page":"gmail-cryptOptions.html"
 }

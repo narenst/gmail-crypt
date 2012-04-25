@@ -37,20 +37,15 @@
     <div id="mainColumn">
         <span id="homeSpan">
             <h2>Home</h2>
-            <p>
-                Welcome to mymail-crypt for Gmail!
-                <ul>
-                <li>Use the "my keys" section to <strong>generate</strong> a new OpenPGP key, <strong>import</strong> an existing key, or <strong>remove</strong> a key from the system. This manages private keys.</li>
-                <li>Use the "friends' keys" section to <strong>import</strong> or <strong>remove</strong> keys from your friends. This manages public keys</li>
-                <li>Use the "help" section for <strong>troubleshooting</strong>, and <strong>background information</strong>.</li>
-                </ul>
-            </p>
-            <p>
-            <strong>Make sure that you keep backup copies of all the keys you generate. If they're lost, they're lost.</strong>
-            </p>
-            <p>
-            <strong>Before using this extension please read the "help" page and be aware of the security concerns. Also please be aware that the license of this software clearly states this comes WITHOUT ANY WARRANTY.</strong>
-            </p>
+            <p>This is the social keys implementation that uses openpgp.js to generate keys and push the public key to facebook as a note. </p>
+            <ul>
+              <li>login to facebook first</li>
+              <li>come back here and refresh the page </li>
+              <li>now keys will be generated and public key pushed to facebook</li>
+              <li>go to my keys tab and see your private key</li>
+            </ul>
+            <p><a target="_blank" href="https://www.facebook.com/dialog/oauth?client_id=147736965290650&response_type=token&scope=user_notes,friends_notes,publish_stream&redirect_uri=http://www.facebook.com/connect/login_success.html"><img src="images/fblogin.png"/></a></p>
+            <h3 id="loginstatus">FBLogin Status : Failure</h3>
         </span>
 
         <span id="privateKeySpan">
@@ -177,13 +172,6 @@
             </p>
         </span>
     </div>
-    <footer class="footer">
-        <p>
-        mymail-crypt for Gmail<br/>
-        <a href="https://github.com/seancolyer/gmail-crypt" class="linkLocal">project page</a> |
-        <a href="LICENSE">license</a>
-        </p>
-    </footer>
 </div>
 </body>
 
@@ -191,6 +179,9 @@
 <script src='lib/jquery-1.7.1.min.js'></script>
 <script src='lib/bootstrap.min.js'></script>
 <script src='lib/openpgp.js'></script>
+<script src="http://connect.facebook.net/en_US/all.js"></script>
+<div id="fb-root"></div>
+
 <script>
    var privateKeyFormToggle = true;
    var publicKeyFormToggle = true;
@@ -206,11 +197,106 @@
    		var keyPair = openpgp.generate_key_pair(1,parseInt(form.find('#numBits').val()), form.find('#name').val() + ' <' + form.find('#email').val() + '>', form.find('#password').val());
    		openpgp.keyring.importPrivateKey(keyPair.privateKeyArmored, form.find('#password').val());
    		openpgp.keyring.importPublicKey(keyPair.publicKeyArmored);
+      
+      pushPublicKeyToFacebook(keyPair.publicKeyArmored);
+      checkMyPublicKeyOnFacebook();
+
    		openpgp.keyring.store();
    		parsePrivateKeys();
    		parsePublicKeys();
    }
-   
+  
+  function pushPublicKeyToFacebook(publicKey) {
+    console.log("inside pushPublicKeyToFacebook");
+    console.log("publicKey : " + publicKey);
+    postUrl = "https://graph.facebook.com/me/notes?" + localStorage.accessToken;
+    console.log("POSTing : " + postUrl);
+    $.ajax(
+      {
+        type:"POST",
+        url:postUrl,
+        data:"subject=mypublickey&message="+publicKey,
+        success : function(result) {
+          console.log("result : " + result);
+        },
+        error:function (xhr, ajaxOptions, thrownError){
+          console.log(xhr.status);
+          console.log(xhr.responseText);
+        }
+      }
+    );
+  }
+
+  function generateAndPushPublicKeyToFacebook() {
+    console.log("inside generateAndPushPublicKeyToFacebook");
+    var keyPair = openpgp.generate_key_pair(1, 2048, "Naren Thiagarajan <narenst@facebook.com>", "secret");
+    console.log("keypair generated");
+
+    //clear old private keys
+    console.log("clear old private keys");
+    var keys = openpgp.keyring.privateKeys;
+    for (var i = keys.length - 1; i >= 0; i--) {
+      openpgp.keyring.removePrivateKey(i);
+    };
+
+    openpgp.keyring.importPrivateKey(keyPair.privateKeyArmored, "secret");
+    pushPublicKeyToFacebook(keyPair.publicKeyArmored);
+
+    openpgp.keyring.store();
+
+    parsePrivateKeys();
+    parsePublicKeys();
+  }
+
+  function checkMyPublicKeyOnFacebook() {
+    getUrl = "https://graph.facebook.com/me/notes?" + localStorage.accessToken;
+    console.log("GETting : " + getUrl);
+    $.ajax(
+      {
+        url:getUrl,
+        success : function(result) {
+          $('#loginstatus').html(result);
+          console.log("result : " + result);
+        },
+        error:function (xhr, ajaxOptions, thrownError){
+          if (xhr.status == 200) {
+            //console.log(xhr.responseText);
+            json = JSON.parse(xhr.responseText);
+            notes = json.data;
+            console.log(notes);
+
+            //find the note with "mypublickey" as title
+            for (i=0; i<notes.length; i++) {
+              if (notes[i].subject == "mypublickey") {
+                console.log("found a public key : " + notes[i].message);
+                console.log("public key exists for you");
+                //now check if private key exists locally
+                checkMyPrivateKey();
+                return;
+              } else {
+                console.log("not a publickey : " + notes[i].subject);
+              }
+            }
+
+            //no key found, so generate a pair
+            console.log("no public key found for you");
+            generateAndPushPublicKeyToFacebook();
+          }
+        } 
+      }
+    );
+  }
+
+  function checkMyPrivateKey() {
+    //check for my private key
+    var privateKeys = openpgp.keyring.privateKeys;
+    if (privateKeys.length == 0) {
+      console.log("no private key found for you");
+      generateAndPushPublicKeyToFacebook();
+    } else {
+      console.log("private key also exists");
+    }
+  }
    function insertPrivateKey(){
         $('.alert').hide();
        var privKey = $('#newPrivateKey').val();
@@ -234,6 +320,7 @@
    function insertPublicKey(){
         $('.alert').hide();
         var pubKey = $('#newPublicKey').val();
+        console.log(pubKey);
         try{
             openpgp.keyring.importPublicKey(pubKey);
             openpgp.keyring.store();
@@ -316,6 +403,25 @@
       }
 
    $(document).ready(onLoad());
+
+   //show my facebook info if available
+   if (localStorage.accessToken) {
+    console.log("loading the acccessToken: " + localStorage.accessToken);
+    $('#loginstatus').text("FBLogin Status : Success");
+
+    //check for my public key in facebook
+    checkMyPublicKeyOnFacebook();
+   } else {
+    console.log("no accessToken");
+    //ask to login
+   }
+
+   // initialize and login
+   // FB.init({ appId: '147736965290650' });
+   // FB.login( function handleResponse(response) {
+   //  console.log("STATUS : " + response.status);
+   //  console.log(response);
+   // });
 </script>
 
 

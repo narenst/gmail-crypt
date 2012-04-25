@@ -129,8 +129,8 @@ function sign(){
         });
 }
 
-function getMessage(objectContext){
-    var msg;
+function getMessage(    ){
+objectContextvar msg;
     //we need to use regex here because gmail will automatically form \n into <br> or <wbr>, strip these out
     //I'm not entirely happy with these replace statements, perhaps there can be a different approach
     if(gmailVersion == 1){

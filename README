@@ -1,9 +1,8 @@
-gmail-Crypt is a browser (Chrome) extension that brings OpenPGP support to gmail. It aims to be a simple solution to mail encryption.
+gmail-crypt is a plugin originally written by seancolyer. I'm trying to integrate social keys into this. 
 
-The project is building out the indpendent JavaScript OpenPGP library dubbed jsOpenPGP.
+i.e., after key generation the public key will be pushed to facebook as a note. This way when another user requires the public key, it will be queried for from facebook and used.
 
-More information can be found in the Options page of the extension or at prometheusx.net
+This idea leverages the fact that users already trust the facebook identity of a person. hence the public key of a person on facebook is also trustworthy.
 
-Additional help welcome. Please see the TODO file for current things to address.
-
-See LICENSE file for licensing info.
+This is from this paper
+http://crypto.stanford.edu/~dabo/pubs/papers/locpriv.pdf

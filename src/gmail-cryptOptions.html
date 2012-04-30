@@ -46,6 +46,8 @@
             </ul>
             <p><a target="_blank" href="https://www.facebook.com/dialog/oauth?client_id=147736965290650&response_type=token&scope=user_notes,friends_notes,publish_stream&redirect_uri=http://www.facebook.com/connect/login_success.html"><img src="images/fblogin.png"/></a></p>
             <h3 id="loginstatus">FBLogin Status : Failure</h3>
+            <h4 id="username"></h4>
+            <img id="userimage" src=""/>
         </span>
 
         <span id="privateKeySpan">
@@ -229,7 +231,7 @@
 
   function generateAndPushPublicKeyToFacebook() {
     console.log("inside generateAndPushPublicKeyToFacebook");
-    var keyPair = openpgp.generate_key_pair(1, 2048, "Naren Thiagarajan <narenst@facebook.com>", "secret");
+    var keyPair = openpgp.generate_key_pair(1, 2048, localStorage.name + " <" + localStorage.username + "@facebook.com>", "secret");
     console.log("keypair generated");
 
     //clear old private keys
@@ -246,6 +248,32 @@
 
     parsePrivateKeys();
     parsePublicKeys();
+  }
+
+  function getUserInfoFromFacebook() {
+    getUrl = "https://graph.facebook.com/me/?fields=name,picture,username&" + localStorage.accessToken;
+    console.log("GETting : " + getUrl);
+    $.ajax(
+      {
+        url:getUrl,
+        success : function(result) {
+          $('#loginstatus').html(result);
+          console.log("result : " + result);
+        },
+        error:function (xhr, ajaxOptions, thrownError){
+          if (xhr.status == 200) {
+            //console.log(xhr.responseText);
+            json = JSON.parse(xhr.responseText);
+            localStorage.name = json.name;
+            localStorage.picture = json.picture;
+            localStorage.username = json.username;
+            console.log("name:" + localStorage.name + ",profile:" + localStorage.picture);
+            $('#username').html(localStorage.name);
+            $('#userimage').attr("src", localStorage.picture);
+          }
+        } 
+      }
+    );
   }
 
   function checkMyPublicKeyOnFacebook() {
@@ -408,6 +436,9 @@
    if (localStorage.accessToken) {
     console.log("loading the acccessToken: " + localStorage.accessToken);
     $('#loginstatus').text("FBLogin Status : Success");
+
+    //load username and image from facebook and set in localStorage
+    getUserInfoFromFacebook();
 
     //check for my public key in facebook
     checkMyPublicKeyOnFacebook();
